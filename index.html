@@ -443,10 +443,7 @@
   }
 
   function renderBadges() {
-    const counts = PRIZES.map(p => p.count);
-    remaining.forEach(pi => { /* count remaining */ });
-
-    const rem = [0, 0, 0];
+    const rem = new Array(PRIZES.length).fill(0);
     remaining.forEach(pi => rem[pi]++);
 
     const info = document.getElementById('prizesInfo');
