@@ -158,16 +158,22 @@
   }
 
   .shake {
-    animation: shake 0.5s ease-in-out;
+    animation: shake 3.0s ease-in-out;
   }
 
   @keyframes shake {
-    0%,100% { transform: rotate(0deg); }
-    10% { transform: rotate(-8deg) scale(1.05); }
-    30% { transform: rotate(8deg) scale(1.05); }
-    50% { transform: rotate(-6deg) scale(1.03); }
-    70% { transform: rotate(6deg) scale(1.03); }
-    90% { transform: rotate(-3deg); }
+    0%   { transform: rotate(0deg) scale(1); }
+    5%   { transform: rotate(-10deg) scale(1.07); }
+    15%  { transform: rotate(10deg) scale(1.07); }
+    25%  { transform: rotate(-9deg) scale(1.06) translateX(-4px); }
+    35%  { transform: rotate(9deg) scale(1.06) translateX(4px); }
+    45%  { transform: rotate(-7deg) scale(1.05) translateX(-3px); }
+    55%  { transform: rotate(7deg) scale(1.05) translateX(3px); }
+    65%  { transform: rotate(-5deg) scale(1.03); }
+    75%  { transform: rotate(5deg) scale(1.03); }
+    85%  { transform: rotate(-3deg) scale(1.01); }
+    93%  { transform: rotate(2deg); }
+    100% { transform: rotate(0deg) scale(1); }
   }
 
   .draw-btn {
@@ -238,7 +244,7 @@
     text-align: center;
     max-width: 340px;
     width: 90%;
-    animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    animation: popIn 1.0s cubic-bezier(0.34, 1.56, 0.64, 1);
     box-shadow: 0 0 60px rgba(201,168,76,0.4), 0 20px 60px rgba(0,0,0,0.8);
   }
 
@@ -503,7 +509,7 @@
 
       renderBadges();
       updateRemaining();
-    }, 500);
+    }, 3200);
   }
 
   function closeModal() {
@@ -548,73 +554,115 @@
 
   function playShake() {
     resumeAC();
-    for (let i = 0; i < 6; i++) {
+    const now = AC.currentTime;
+
+    // 低音うなり（ドラムロール感）
+    const lfo = AC.createOscillator();
+    const lfoGain = AC.createGain();
+    lfo.type = 'sawtooth';
+    lfo.frequency.setValueAtTime(3, now);
+    lfo.frequency.linearRampToValueAtTime(12, now + 2.5);
+    lfoGain.gain.setValueAtTime(0.0, now);
+    lfoGain.gain.linearRampToValueAtTime(0.18, now + 0.3);
+    lfoGain.gain.linearRampToValueAtTime(0.22, now + 2.0);
+    lfoGain.gain.linearRampToValueAtTime(0.0, now + 3.0);
+    lfo.connect(lfoGain); lfoGain.connect(AC.destination);
+    lfo.start(now); lfo.stop(now + 3.1);
+
+    // ノイズバースト（加速するガラガラ音）
+    const totalBursts = 22;
+    for (let i = 0; i < totalBursts; i++) {
+      // 加速: 最初はゆっくり、後半は速く
+      const t = (i / totalBursts);
+      const delay = t * t * 2400 + i * 30;
       setTimeout(() => {
-        const buf = AC.createBuffer(1, AC.sampleRate * 0.06, AC.sampleRate);
+        const dur = Math.max(0.03, 0.09 - t * 0.06);
+        const buf = AC.createBuffer(1, Math.ceil(AC.sampleRate * dur), AC.sampleRate);
         const data = buf.getChannelData(0);
-        for (let j = 0; j < data.length; j++) data[j] = (Math.random() * 2 - 1) * 0.35;
+        for (let j = 0; j < data.length; j++) data[j] = (Math.random() * 2 - 1);
         const src = AC.createBufferSource();
         src.buffer = buf;
         const f = AC.createBiquadFilter();
-        f.type = 'bandpass'; f.frequency.value = 1200 + Math.random() * 800; f.Q.value = 1.5;
+        f.type = 'bandpass';
+        f.frequency.value = 800 + Math.random() * 1800;
+        f.Q.value = 2.0;
         const g = AC.createGain();
-        g.gain.setValueAtTime(0.5, AC.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.01, AC.currentTime + 0.06);
+        const vol = 0.15 + t * 0.35;
+        g.gain.setValueAtTime(vol, AC.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + dur);
         src.connect(f); f.connect(g); g.connect(AC.destination);
         src.start();
-      }, i * 70);
+      }, delay);
     }
+
+    // 最後にドン！（低音インパクト）
+    setTimeout(() => {
+      const o = AC.createOscillator(); const g = AC.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(120, AC.currentTime);
+      o.frequency.exponentialRampToValueAtTime(40, AC.currentTime + 0.3);
+      g.gain.setValueAtTime(0.6, AC.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + 0.5);
+      o.connect(g); g.connect(AC.destination);
+      o.start(AC.currentTime); o.stop(AC.currentTime + 0.5);
+    }, 2600);
+  }
+
+  function tone(type, freq, start, dur, vol, dest) {
+    const o = AC.createOscillator(); const g = AC.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(0, start);
+    g.gain.linearRampToValueAtTime(vol, start + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, start + dur);
+    o.connect(g); g.connect(dest);
+    o.start(start); o.stop(start + dur + 0.05);
   }
 
   function playResult(rarity) {
     resumeAC();
     const now = AC.currentTime;
+    const dest = AC.destination;
+
     if (rarity === 'nft') {
-      [523, 659, 784, 1047].forEach((freq, i) => {
-        const o = AC.createOscillator(); const g = AC.createGain();
-        o.type = 'triangle'; o.frequency.value = freq;
-        g.gain.setValueAtTime(0, now + i*0.09);
-        g.gain.linearRampToValueAtTime(0.4, now + i*0.09 + 0.03);
-        g.gain.exponentialRampToValueAtTime(0.01, now + i*0.09 + 0.5);
-        o.connect(g); g.connect(AC.destination);
-        o.start(now + i*0.09); o.stop(now + i*0.09 + 0.6);
+      // ── NFT：壮大なファンファーレ ──
+      // ベース和音
+      [130, 196, 261].forEach((f,i) => tone('sawtooth', f, now+0.0, 2.0, 0.12, dest));
+      // メロディ上昇
+      [392,494,587,784,1047].forEach((f,i) => {
+        tone('triangle', f, now + i*0.13, 1.2 - i*0.1, 0.35, dest);
       });
-      [2093, 2637, 3136].forEach((freq, i) => {
-        const o = AC.createOscillator(); const g = AC.createGain();
-        o.type = 'sine'; o.frequency.value = freq;
-        g.gain.setValueAtTime(0, now + 0.35 + i*0.07);
-        g.gain.linearRampToValueAtTime(0.2, now + 0.35 + i*0.07 + 0.02);
-        g.gain.exponentialRampToValueAtTime(0.001, now + 0.35 + i*0.07 + 0.4);
-        o.connect(g); g.connect(AC.destination);
-        o.start(now + 0.35 + i*0.07); o.stop(now + 1.2);
+      // 1秒後：ジャーン和音
+      [523,659,784,1047].forEach((f,i) => {
+        tone('triangle', f, now+0.75, 1.8, 0.28, dest);
       });
+      // キラキラ高音連打
+      [2093,2349,2637,3136,4186].forEach((f,i) => {
+        tone('sine', f, now + 1.0 + i*0.08, 0.6, 0.15, dest);
+      });
+      // 締めのベル
+      [1047,1319,1568].forEach((f,i) => {
+        tone('sine', f, now + 1.6 + i*0.12, 1.0, 0.2, dest);
+      });
+
     } else if (rarity === 'high') {
-      [659, 784, 1047].forEach((freq, i) => {
-        const o = AC.createOscillator(); const g = AC.createGain();
-        o.type = 'triangle'; o.frequency.value = freq;
-        g.gain.setValueAtTime(0, now + i*0.1);
-        g.gain.linearRampToValueAtTime(0.35, now + i*0.1 + 0.03);
-        g.gain.exponentialRampToValueAtTime(0.01, now + i*0.1 + 0.4);
-        o.connect(g); g.connect(AC.destination);
-        o.start(now + i*0.1); o.stop(now + i*0.1 + 0.5);
+      // ── アクキー/Tシャツ：明るい3音チャイム ──
+      [523,659,784,1047].forEach((f,i) => {
+        tone('triangle', f, now + i*0.12, 0.8, 0.3, dest);
       });
+      [1047,1319].forEach((f,i) => {
+        tone('sine', f, now + 0.5 + i*0.1, 0.6, 0.18, dest);
+      });
+
     } else if (rarity === 'mid') {
-      [523, 659].forEach((freq, i) => {
-        const o = AC.createOscillator(); const g = AC.createGain();
-        o.type = 'sine'; o.frequency.value = freq;
-        g.gain.setValueAtTime(0, now + i*0.1);
-        g.gain.linearRampToValueAtTime(0.3, now + i*0.1 + 0.02);
-        g.gain.exponentialRampToValueAtTime(0.01, now + i*0.1 + 0.3);
-        o.connect(g); g.connect(AC.destination);
-        o.start(now + i*0.1); o.stop(now + i*0.1 + 0.4);
+      // ── ミニタオル：2音ポーン ──
+      [523,659,784].forEach((f,i) => {
+        tone('sine', f, now + i*0.13, 0.6, 0.25, dest);
       });
+
     } else {
-      const o = AC.createOscillator(); const g = AC.createGain();
-      o.type = 'sine'; o.frequency.value = 440;
-      g.gain.setValueAtTime(0.25, now);
-      g.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-      o.connect(g); g.connect(AC.destination);
-      o.start(now); o.stop(now + 0.3);
+      // ── ステッカー：軽快なポン ──
+      tone('sine', 523, now,      0.3, 0.22, dest);
+      tone('sine', 659, now+0.12, 0.25, 0.18, dest);
     }
   }
 
