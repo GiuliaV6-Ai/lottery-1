@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>くじ引き</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=Zen+Antique&display=swap');
+
+  :root {
+    --gold: #c9a84c;
+    --gold-light: #f0d080;
+    --red: #c0392b;
+    --dark: #1a0a00;
+    --paper: #f5ead5;
+    --ink: #2c1810;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--dark);
+    font-family: 'Noto Serif JP', serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(180,100,0,0.15) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 50%, rgba(180,50,0,0.12) 0%, transparent 60%),
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 40px,
+        rgba(201,168,76,0.03) 40px,
+        rgba(201,168,76,0.03) 41px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 40px,
+        rgba(201,168,76,0.03) 40px,
+        rgba(201,168,76,0.03) 41px
+      );
+    pointer-events: none;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 32px;
+    padding: 24px;
+    width: 100%;
+    max-width: 480px;
+  }
+
+  .title-wrap {
+    text-align: center;
+  }
+
+  .title-jp {
+    font-family: 'Zen Antique', serif;
+    font-size: clamp(2.2rem, 8vw, 3.2rem);
+    color: var(--gold-light);
+    text-shadow: 0 0 30px rgba(201,168,76,0.5), 0 2px 4px rgba(0,0,0,0.8);
+    letter-spacing: 0.2em;
+    line-height: 1;
+  }
+
+  .title-deco {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 8px;
+  }
+
+  .deco-line {
+    height: 1px;
+    width: 60px;
+    background: linear-gradient(to right, transparent, var(--gold));
+  }
+  .deco-line.right { background: linear-gradient(to left, transparent, var(--gold)); }
+
+  .deco-diamond {
+    width: 8px; height: 8px;
+    background: var(--gold);
+    transform: rotate(45deg);
+  }
+
+  /* 賞品カウンター */
+  .prizes-info {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .prize-badge {
+    background: rgba(201,168,76,0.1);
+    border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 8px;
+    padding: 8px 14px;
+    text-align: center;
+    transition: all 0.3s;
+  }
+
+  .prize-badge.empty {
+    opacity: 0.3;
+    border-color: rgba(201,168,76,0.1);
+  }
+
+  .prize-badge .icon { font-size: 1.4rem; }
+  .prize-badge .name {
+    font-size: 0.65rem;
+    color: var(--gold-light);
+    letter-spacing: 0.1em;
+    margin-top: 2px;
+  }
+  .prize-badge .count {
+    font-size: 0.9rem;
+    color: var(--gold);
+    font-weight: 700;
+    margin-top: 2px;
+  }
+
+  /* くじ箱 */
+  .box-wrap {
+    position: relative;
+    cursor: pointer;
+  }
+
+  .lottery-box {
+    width: 160px;
+    height: 160px;
+    position: relative;
+    transition: transform 0.1s;
+  }
+
+  .box-wrap:active .lottery-box { transform: scale(0.95); }
+
+  .box-svg {
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 0 20px rgba(201,168,76,0.4));
+  }
+
+  .shake {
+    animation: shake 0.5s ease-in-out;
+  }
+
+  @keyframes shake {
+    0%,100% { transform: rotate(0deg); }
+    10% { transform: rotate(-8deg) scale(1.05); }
+    30% { transform: rotate(8deg) scale(1.05); }
+    50% { transform: rotate(-6deg) scale(1.03); }
+    70% { transform: rotate(6deg) scale(1.03); }
+    90% { transform: rotate(-3deg); }
+  }
+
+  .draw-btn {
+    background: linear-gradient(135deg, #8b1a1a 0%, #c0392b 50%, #8b1a1a 100%);
+    border: 2px solid var(--gold);
+    color: var(--gold-light);
+    font-family: 'Zen Antique', serif;
+    font-size: 1.3rem;
+    letter-spacing: 0.3em;
+    padding: 14px 48px;
+    cursor: pointer;
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+    box-shadow: 0 4px 20px rgba(192,57,43,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
+  }
+
+  .draw-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%);
+    transform: translateX(-100%);
+    transition: transform 0.6s;
+  }
+
+  .draw-btn:hover::before { transform: translateX(100%); }
+  .draw-btn:hover {
+    box-shadow: 0 6px 30px rgba(192,57,43,0.7), 0 0 15px rgba(201,168,76,0.3), inset 0 1px 0 rgba(255,255,255,0.15);
+    transform: translateY(-2px);
+  }
+
+  .draw-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* 残り枚数 */
+  .remaining {
+    color: rgba(201,168,76,0.6);
+    font-size: 0.8rem;
+    letter-spacing: 0.15em;
+    text-align: center;
+  }
+
+  /* 結果モーダル */
+  .modal-bg {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+
+  .modal-bg.show { display: flex; }
+
+  .modal {
+    position: relative;
+    background: var(--paper);
+    border: 3px solid var(--gold);
+    border-radius: 8px;
+    padding: 40px 48px;
+    text-align: center;
+    max-width: 340px;
+    width: 90%;
+    animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 0 60px rgba(201,168,76,0.4), 0 20px 60px rgba(0,0,0,0.8);
+  }
+
+  @keyframes popIn {
+    from { transform: scale(0.3) rotate(-10deg); opacity: 0; }
+    to { transform: scale(1) rotate(0deg); opacity: 1; }
+  }
+
+  .modal::before, .modal::after {
+    content: '◆';
+    position: absolute;
+    color: var(--gold);
+    font-size: 1.2rem;
+  }
+  .modal::before { top: 12px; left: 12px; }
+  .modal::after { bottom: 12px; right: 12px; }
+
+  .result-rank {
+    font-family: 'Zen Antique', serif;
+    font-size: 1rem;
+    color: var(--red);
+    letter-spacing: 0.3em;
+    margin-bottom: 8px;
+  }
+
+  .result-icon {
+    font-size: 4rem;
+    margin: 12px 0;
+    animation: bounce 0.6s ease 0.3s both;
+  }
+
+  @keyframes bounce {
+    0% { transform: scale(0); }
+    60% { transform: scale(1.2); }
+    80% { transform: scale(0.95); }
+    100% { transform: scale(1); }
+  }
+
+  .result-name {
+    font-family: 'Zen Antique', serif;
+    font-size: 1.6rem;
+    color: var(--ink);
+    letter-spacing: 0.15em;
+    margin-bottom: 16px;
+    line-height: 1.4;
+  }
+
+  .result-deco {
+    color: var(--gold);
+    font-size: 0.9rem;
+    letter-spacing: 0.3em;
+    margin-bottom: 20px;
+  }
+
+  .modal-close {
+    background: var(--ink);
+    color: var(--gold-light);
+    border: 1px solid var(--gold);
+    font-family: 'Noto Serif JP', serif;
+    font-size: 0.85rem;
+    letter-spacing: 0.2em;
+    padding: 10px 32px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+
+  .modal-close:hover {
+    background: var(--gold);
+    color: var(--ink);
+  }
+
+  /* 全終了 */
+  .all-done {
+    color: var(--gold-light);
+    font-family: 'Zen Antique', serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.2em;
+    text-align: center;
+    padding: 16px;
+    border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 8px;
+    background: rgba(201,168,76,0.05);
+  }
+
+  /* 紙吹雪 */
+  .confetti-piece {
+    position: fixed;
+    top: -10px;
+    pointer-events: none;
+    z-index: 200;
+    animation: fall linear forwards;
+  }
+
+  @keyframes fall {
+    to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  }
+
+  .reset-btn {
+    background: transparent;
+    border: 1px solid rgba(201,168,76,0.3);
+    color: rgba(201,168,76,0.5);
+    font-family: 'Noto Serif JP', serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    padding: 8px 24px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.3s;
+  }
+  .reset-btn:hover {
+    border-color: var(--gold);
+    color: var(--gold-light);
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="title-wrap">
+    <div class="title-jp">くじ引き</div>
+    <div class="title-deco">
+      <div class="deco-line"></div>
+      <div class="deco-diamond"></div>
+      <div class="deco-line right"></div>
+    </div>
+  </div>
+
+  <div class="prizes-info" id="prizesInfo"></div>
+
+  <div class="box-wrap" id="boxWrap" onclick="drawLottery()">
+    <div class="lottery-box" id="lotteryBox">
+      <svg class="box-svg" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+        <!-- 箱の本体 -->
+        <rect x="20" y="70" width="120" height="75" rx="4" fill="#3d1f00" stroke="#c9a84c" stroke-width="1.5"/>
+        <!-- 箱の蓋 -->
+        <rect x="12" y="55" width="136" height="22" rx="3" fill="#5c2e00" stroke="#c9a84c" stroke-width="1.5"/>
+        <!-- 蓋のリボン横 -->
+        <rect x="12" y="62" width="136" height="8" fill="rgba(192,57,43,0.6)"/>
+        <!-- リボン縦 -->
+        <rect x="74" y="55" width="12" height="90" fill="rgba(192,57,43,0.6)"/>
+        <!-- リボン中央 -->
+        <ellipse cx="80" cy="58" rx="14" ry="10" fill="none" stroke="#c0392b" stroke-width="2"/>
+        <ellipse cx="80" cy="58" rx="7" ry="5" fill="#c0392b"/>
+        <!-- くじ棒 -->
+        <g id="sticks">
+          <rect x="55" y="25" width="6" height="38" rx="3" fill="#f5ead5" opacity="0.9" transform="rotate(-8,58,44)"/>
+          <rect x="77" y="20" width="6" height="40" rx="3" fill="#f5ead5" opacity="0.9"/>
+          <rect x="99" y="25" width="6" height="38" rx="3" fill="#f5ead5" opacity="0.9" transform="rotate(8,102,44)"/>
+        </g>
+        <!-- 金装飾 -->
+        <text x="80" y="112" text-anchor="middle" fill="#c9a84c" font-size="11" font-family="serif" opacity="0.8">御</text>
+        <text x="80" y="127" text-anchor="middle" fill="#c9a84c" font-size="11" font-family="serif" opacity="0.8">抽</text>
+        <text x="80" y="142" text-anchor="middle" fill="#c9a84c" font-size="11" font-family="serif" opacity="0.8">選</text>
+      </svg>
+    </div>
+  </div>
+
+  <button class="draw-btn" id="drawBtn" onclick="drawLottery()">引く</button>
+  <div class="remaining" id="remaining"></div>
+  <button class="reset-btn" onclick="resetLottery()">リセット</button>
+</div>
+
+<!-- 結果モーダル -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal" id="modal">
+    <div class="result-rank" id="resultRank"></div>
+    <div class="result-icon" id="resultIcon"></div>
+    <div class="result-name" id="resultName"></div>
+    <div class="result-deco">✦ おめでとうございます ✦</div>
+    <button class="modal-close" onclick="closeModal()">とじる</button>
+  </div>
+</div>
+
+<script>
+  const PRIZES = [
+    { name: 'HCC#5448',            icon: '💎', count: 1,  rank: '🔥 激レア' },
+    { name: 'HCC#6076',            icon: '💎', count: 1,  rank: '🔥 激レア' },
+    { name: 'アクリルキーホルダー', icon: '🏆', count: 4,  rank: '★★★★' },
+    { name: 'Tシャツ',             icon: '👕', count: 4,  rank: '★★★☆' },
+    { name: 'ミニタオル',          icon: '🎀', count: 9,  rank: '★★☆☆' },
+    { name: 'ステッカー',          icon: '🌟', count: 50, rank: '★☆☆☆' },
+  ];
+
+  let pool = [];
+  let remaining = [];
+
+  function initPool() {
+    pool = [];
+    PRIZES.forEach((p, pi) => {
+      for (let i = 0; i < p.count; i++) pool.push(pi);
+    });
+    remaining = [...pool];
+    shuffle(remaining);
+  }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+  }
+
+  function renderBadges() {
+    const counts = PRIZES.map(p => p.count);
+    remaining.forEach(pi => { /* count remaining */ });
+
+    const rem = [0, 0, 0];
+    remaining.forEach(pi => rem[pi]++);
+
+    const info = document.getElementById('prizesInfo');
+    info.innerHTML = PRIZES.map((p, i) => `
+      <div class="prize-badge ${rem[i] === 0 ? 'empty' : ''}">
+        <div class="icon">${p.icon}</div>
+        <div class="name">${p.name}</div>
+        <div class="count">${rem[i]} / ${p.count}</div>
+      </div>
+    `).join('');
+  }
+
+  function updateRemaining() {
+    const el = document.getElementById('remaining');
+    const btn = document.getElementById('drawBtn');
+    if (remaining.length === 0) {
+      el.textContent = '全て引き終わりました';
+      btn.disabled = true;
+      document.getElementById('boxWrap').style.cursor = 'default';
+    } else {
+      el.textContent = `残り ${remaining.length} 枚`;
+      btn.disabled = false;
+    }
+  }
+
+  function drawLottery() {
+    if (remaining.length === 0) return;
+
+    // shake box
+    const box = document.getElementById('lotteryBox');
+    box.classList.remove('shake');
+    void box.offsetWidth;
+    box.classList.add('shake');
+    playShake();
+
+    setTimeout(() => {
+      const prizeIdx = remaining.pop();
+      const prize = PRIZES[prizeIdx];
+
+      document.getElementById('resultRank').textContent = prize.rank;
+      document.getElementById('resultIcon').textContent = prize.icon;
+      document.getElementById('resultName').textContent = prize.name;
+
+      document.getElementById('modalBg').classList.add('show');
+
+      if (prizeIdx === 0 || prizeIdx === 1) {
+        launchConfetti(60); playResult('nft');
+      } else if (prizeIdx === 2) {
+        launchConfetti(30); playResult('high');
+      } else if (prizeIdx === 3) {
+        launchConfetti(15); playResult('high');
+      } else if (prizeIdx === 4) {
+        launchConfetti(6); playResult('mid');
+      } else {
+        launchConfetti(3); playResult('low');
+      }
+
+      renderBadges();
+      updateRemaining();
+    }, 500);
+  }
+
+  function closeModal() {
+    document.getElementById('modalBg').classList.remove('show');
+  }
+
+  function resetLottery() {
+    if (!confirm('リセットしますか？')) return;
+    initPool();
+    renderBadges();
+    updateRemaining();
+    document.getElementById('drawBtn').disabled = false;
+    document.getElementById('boxWrap').style.cursor = 'pointer';
+  }
+
+  function launchConfetti(count) {
+    const colors = ['#c9a84c','#f0d080','#c0392b','#e74c3c','#f5ead5','#ffffff'];
+    for (let i = 0; i < count; i++) {
+      setTimeout(() => {
+        const el = document.createElement('div');
+        el.className = 'confetti-piece';
+        const size = Math.random() * 10 + 6;
+        el.style.cssText = `
+          left: ${Math.random()*100}vw;
+          width: ${size}px;
+          height: ${size}px;
+          background: ${colors[Math.floor(Math.random()*colors.length)]};
+          border-radius: ${Math.random() > 0.5 ? '50%' : '0'};
+          animation-duration: ${Math.random()*2+1.5}s;
+          animation-delay: ${Math.random()*0.5}s;
+          opacity: ${Math.random()*0.7+0.3};
+        `;
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 3000);
+      }, i * 40);
+    }
+  }
+
+  // ===== 効果音 (Web Audio API) =====
+  const AC = new (window.AudioContext || window.webkitAudioContext)();
+  function resumeAC() { if (AC.state === 'suspended') AC.resume(); }
+
+  function playShake() {
+    resumeAC();
+    for (let i = 0; i < 6; i++) {
+      setTimeout(() => {
+        const buf = AC.createBuffer(1, AC.sampleRate * 0.06, AC.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let j = 0; j < data.length; j++) data[j] = (Math.random() * 2 - 1) * 0.35;
+        const src = AC.createBufferSource();
+        src.buffer = buf;
+        const f = AC.createBiquadFilter();
+        f.type = 'bandpass'; f.frequency.value = 1200 + Math.random() * 800; f.Q.value = 1.5;
+        const g = AC.createGain();
+        g.gain.setValueAtTime(0.5, AC.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.01, AC.currentTime + 0.06);
+        src.connect(f); f.connect(g); g.connect(AC.destination);
+        src.start();
+      }, i * 70);
+    }
+  }
+
+  function playResult(rarity) {
+    resumeAC();
+    const now = AC.currentTime;
+    if (rarity === 'nft') {
+      [523, 659, 784, 1047].forEach((freq, i) => {
+        const o = AC.createOscillator(); const g = AC.createGain();
+        o.type = 'triangle'; o.frequency.value = freq;
+        g.gain.setValueAtTime(0, now + i*0.09);
+        g.gain.linearRampToValueAtTime(0.4, now + i*0.09 + 0.03);
+        g.gain.exponentialRampToValueAtTime(0.01, now + i*0.09 + 0.5);
+        o.connect(g); g.connect(AC.destination);
+        o.start(now + i*0.09); o.stop(now + i*0.09 + 0.6);
+      });
+      [2093, 2637, 3136].forEach((freq, i) => {
+        const o = AC.createOscillator(); const g = AC.createGain();
+        o.type = 'sine'; o.frequency.value = freq;
+        g.gain.setValueAtTime(0, now + 0.35 + i*0.07);
+        g.gain.linearRampToValueAtTime(0.2, now + 0.35 + i*0.07 + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.35 + i*0.07 + 0.4);
+        o.connect(g); g.connect(AC.destination);
+        o.start(now + 0.35 + i*0.07); o.stop(now + 1.2);
+      });
+    } else if (rarity === 'high') {
+      [659, 784, 1047].forEach((freq, i) => {
+        const o = AC.createOscillator(); const g = AC.createGain();
+        o.type = 'triangle'; o.frequency.value = freq;
+        g.gain.setValueAtTime(0, now + i*0.1);
+        g.gain.linearRampToValueAtTime(0.35, now + i*0.1 + 0.03);
+        g.gain.exponentialRampToValueAtTime(0.01, now + i*0.1 + 0.4);
+        o.connect(g); g.connect(AC.destination);
+        o.start(now + i*0.1); o.stop(now + i*0.1 + 0.5);
+      });
+    } else if (rarity === 'mid') {
+      [523, 659].forEach((freq, i) => {
+        const o = AC.createOscillator(); const g = AC.createGain();
+        o.type = 'sine'; o.frequency.value = freq;
+        g.gain.setValueAtTime(0, now + i*0.1);
+        g.gain.linearRampToValueAtTime(0.3, now + i*0.1 + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.01, now + i*0.1 + 0.3);
+        o.connect(g); g.connect(AC.destination);
+        o.start(now + i*0.1); o.stop(now + i*0.1 + 0.4);
+      });
+    } else {
+      const o = AC.createOscillator(); const g = AC.createGain();
+      o.type = 'sine'; o.frequency.value = 440;
+      g.gain.setValueAtTime(0.25, now);
+      g.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+      o.connect(g); g.connect(AC.destination);
+      o.start(now); o.stop(now + 0.3);
+    }
+  }
+
+  // 初期化
+  initPool();
+  renderBadges();
+  updateRemaining();
+</script>
+</body>
+</html>
