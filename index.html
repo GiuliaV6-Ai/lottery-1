@@ -403,61 +403,87 @@ function launchConfetti(count){
   },i*40);}
 }
 
-// ===== 効果音 =====
+// ===== 効果音（可愛いバージョン）=====
 const AC=new(window.AudioContext||window.webkitAudioContext)();
 function resumeAC(){if(AC.state==='suspended')AC.resume();}
 
-function playShake(){
-  resumeAC();const now=AC.currentTime;
-  // ガチャ回転音（機械的なクリック音 + 低音）
-  const lfo=AC.createOscillator(),lg=AC.createGain();
-  lfo.type='square';lfo.frequency.setValueAtTime(6,now);lfo.frequency.linearRampToValueAtTime(22,now+2.5);
-  lg.gain.setValueAtTime(0,now);lg.gain.linearRampToValueAtTime(.12,now+.3);lg.gain.linearRampToValueAtTime(.18,now+2.2);lg.gain.linearRampToValueAtTime(0,now+3);
-  lfo.connect(lg);lg.connect(AC.destination);lfo.start(now);lfo.stop(now+3.1);
-  // カチカチ音
-  for(let i=0;i<24;i++){
-    const t=i/24,delay=t*t*2600+i*28;
-    setTimeout(()=>{
-      const dur=.04;
-      const buf=AC.createBuffer(1,Math.ceil(AC.sampleRate*dur),AC.sampleRate);
-      const data=buf.getChannelData(0);for(let j=0;j<data.length;j++)data[j]=(Math.random()*2-1)*(1-j/data.length);
-      const src=AC.createBufferSource();src.buffer=buf;
-      const f=AC.createBiquadFilter();f.type='peaking';f.frequency.value=2000+t*2000;f.gain.value=12;
-      const g=AC.createGain();g.gain.setValueAtTime(.2+t*.35,AC.currentTime);g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+dur);
-      src.connect(f);f.connect(g);g.connect(AC.destination);src.start();
-    },delay);
-  }
-  // 最後にコロン（カプセル落下音）
-  setTimeout(()=>{
-    const o=AC.createOscillator(),g=AC.createGain();
-    o.type='sine';o.frequency.setValueAtTime(800,AC.currentTime);o.frequency.exponentialRampToValueAtTime(300,AC.currentTime+.2);
-    g.gain.setValueAtTime(.4,AC.currentTime);g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+.3);
-    o.connect(g);g.connect(AC.destination);o.start(AC.currentTime);o.stop(AC.currentTime+.35);
-  },3000);
+function tone(type,freq,start,dur,vol,dest,bend){
+  const o=AC.createOscillator(),g=AC.createGain();
+  o.type=type;o.frequency.setValueAtTime(freq,start);
+  if(bend)o.frequency.linearRampToValueAtTime(freq*bend,start+dur*.7);
+  g.gain.setValueAtTime(0,start);
+  g.gain.linearRampToValueAtTime(vol,start+.015);
+  g.gain.exponentialRampToValueAtTime(.001,start+dur);
+  o.connect(g);g.connect(dest);o.start(start);o.stop(start+dur+.05);
 }
 
-function tone(type,freq,start,dur,vol,dest){
-  const o=AC.createOscillator(),g=AC.createGain();
-  o.type=type;o.frequency.value=freq;
-  g.gain.setValueAtTime(0,start);g.gain.linearRampToValueAtTime(vol,start+.02);g.gain.exponentialRampToValueAtTime(.001,start+dur);
-  o.connect(g);g.connect(dest);o.start(start);o.stop(start+dur+.05);
+// ポコポコ・キラキラ系のかわいい回転音
+function playShake(){
+  resumeAC();const now=AC.currentTime,dest=AC.destination;
+
+  // かわいいポコポコ連打（上昇音程）
+  const notes=[523,587,659,698,784,880,988,1047];
+  for(let i=0;i<20;i++){
+    const t=i/20;
+    const delay=t*t*2400+i*32;
+    const freq=notes[i%notes.length]*(1+t*.3);
+    setTimeout(()=>{
+      tone('sine',freq,AC.currentTime,.08+t*.04,.18+t*.1,dest,1.05);
+    },delay);
+  }
+
+  // キラキラ高音（途中）
+  setTimeout(()=>{
+    [2093,2637,3136].forEach((f,i)=>{
+      tone('sine',f,AC.currentTime+i*.06,.15,.1,dest,1.02);
+    });
+  },1200);
+  setTimeout(()=>{
+    [2637,3136,4186].forEach((f,i)=>{
+      tone('sine',f,AC.currentTime+i*.05,.12,.08,dest,1.02);
+    });
+  },1800);
+
+  // かわいいポーン（カプセル落下）
+  setTimeout(()=>{
+    tone('sine',1047,AC.currentTime,.05,.35,dest,1.0);
+    tone('sine',1319,AC.currentTime+.06,.12,.25,dest,1.0);
+    tone('sine',1568,AC.currentTime+.13,.18,.3,dest,.95);
+    // ポヨン
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.type='sine';o.frequency.setValueAtTime(600,AC.currentTime+.2);
+    o.frequency.linearRampToValueAtTime(900,AC.currentTime+.35);
+    o.frequency.linearRampToValueAtTime(700,AC.currentTime+.5);
+    g.gain.setValueAtTime(.28,AC.currentTime+.2);
+    g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+.55);
+    o.connect(g);g.connect(dest);o.start(AC.currentTime+.2);o.stop(AC.currentTime+.6);
+  },2700);
 }
 
 function playResult(rarity){
   resumeAC();const now=AC.currentTime,dest=AC.destination;
   if(rarity==='nft'){
-    [130,196,261].forEach(f=>tone('sawtooth',f,now,2.0,.1,dest));
-    [392,494,587,784,1047].forEach((f,i)=>tone('triangle',f,now+i*.13,1.2-i*.1,.32,dest));
-    [523,659,784,1047].forEach(f=>tone('triangle',f,now+.75,1.8,.25,dest));
-    [2093,2349,2637,3136,4186].forEach((f,i)=>tone('sine',f,now+1.0+i*.08,.6,.13,dest));
-    [1047,1319,1568].forEach((f,i)=>tone('sine',f,now+1.6+i*.12,1.0,.18,dest));
+    // 🎺 壮大なファンファーレ（NFT専用）
+    [261,330,392].forEach(f=>tone('triangle',f,now,.8,.1,dest));
+    [523,659,784,1047].forEach((f,i)=>tone('triangle',f,now+i*.11,1.0-i*.08,.3,dest,1.01));
+    [1047,1319,1568,2093].forEach((f,i)=>tone('sine',f,now+.6+i*.09,.8,.22,dest,1.01));
+    [2093,2637,3136,4186].forEach((f,i)=>tone('sine',f,now+1.1+i*.07,.5,.15,dest,1.0));
+    [523,659,784,1047,1319].forEach((f,i)=>tone('triangle',f,now+1.5+i*.08,1.0,.2,dest,1.0));
+    // キラキラ締め
+    [4186,3136,2093,1568].forEach((f,i)=>tone('sine',f,now+2.0+i*.06,.4,.12,dest,.98));
   }else if(rarity==='high'){
-    [523,659,784,1047].forEach((f,i)=>tone('triangle',f,now+i*.12,.8,.28,dest));
-    [1047,1319].forEach((f,i)=>tone('sine',f,now+.5+i*.1,.6,.16,dest));
+    // ✨ 明るいチャイム
+    [784,988,1175,1568].forEach((f,i)=>tone('sine',f,now+i*.1,.7,.25,dest,1.01));
+    [1568,1976,2349].forEach((f,i)=>tone('sine',f,now+.5+i*.08,.5,.15,dest,1.0));
   }else if(rarity==='mid'){
-    [523,659,784].forEach((f,i)=>tone('sine',f,now+i*.13,.6,.22,dest));
+    // 🎵 ポポポン
+    [659,784,988].forEach((f,i)=>tone('sine',f,now+i*.12,.5,.22,dest,1.02));
+    tone('sine',1319,now+.4,.3,.15,dest,1.0);
   }else{
-    tone('sine',523,now,.3,.2,dest);tone('sine',659,now+.12,.25,.16,dest);
+    // 🎶 ポコン♪
+    tone('sine',784,now,.12,.2,dest,1.05);
+    tone('sine',988,now+.1,.15,.18,dest,1.03);
+    tone('sine',1175,now+.22,.2,.15,dest,.97);
   }
 }
 
