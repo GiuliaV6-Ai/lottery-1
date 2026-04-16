@@ -27,6 +27,24 @@
       radial-gradient(circle at 15% 80%,rgba(179,157,219,.13) 0%,transparent 35%);
   }
 
+  /* HamCup 動くテキスト */
+  .hamcup-float {
+    position: fixed;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900;
+    font-size: 1.1rem;
+    pointer-events: none;
+    z-index: 2;
+    white-space: nowrap;
+    opacity: 0.55;
+    background: linear-gradient(135deg, var(--pink), var(--orange), var(--yellow));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 1px 3px rgba(255,110,180,.2));
+    transition: none;
+  }
+
   /* デコ画像 */
   .deco-img {
     position: fixed;
@@ -545,6 +563,42 @@ function playResult(rarity){
     el.style.cssText=`left:${Math.random()*100}vw;bottom:-2rem;animation-duration:${7+Math.random()*9}s;animation-delay:${-Math.random()*14}s;font-size:${.9+Math.random()*1.1}rem;`;
     c.appendChild(el);
   }
+})();
+
+// HamCup 動くテキスト
+(function(){
+  const texts = ['HamCup','🐹HamCup','HamCup🎰','✨HamCup✨','HamCup🍬'];
+  const items = [];
+  const count = 6;
+  for(let i=0;i<count;i++){
+    const el=document.createElement('div');
+    el.className='hamcup-float';
+    el.textContent=texts[i%texts.length];
+    document.body.appendChild(el);
+    items.push({
+      el,
+      x: Math.random()*window.innerWidth,
+      y: Math.random()*window.innerHeight,
+      vx: (Math.random()-0.5)*1.2,
+      vy: (Math.random()-0.5)*1.2,
+    });
+  }
+  function animateHamcup(){
+    const W=window.innerWidth, H=window.innerHeight;
+    items.forEach(item=>{
+      item.x += item.vx;
+      item.y += item.vy;
+      const w=item.el.offsetWidth||80, h=item.el.offsetHeight||20;
+      if(item.x<0){item.x=0;item.vx*=-1;}
+      if(item.x+w>W){item.x=W-w;item.vx*=-1;}
+      if(item.y<0){item.y=0;item.vy*=-1;}
+      if(item.y+h>H){item.y=H-h;item.vy*=-1;}
+      item.el.style.left=item.x+'px';
+      item.el.style.top=item.y+'px';
+    });
+    requestAnimationFrame(animateHamcup);
+  }
+  requestAnimationFrame(animateHamcup);
 })();
 
 document.getElementById('decoLeft').src  = IMG_PERO;
