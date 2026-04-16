@@ -3,414 +3,255 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>くじ引き</title>
+<title>ハムスターガチャ</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=Zen+Antique&display=swap');
-
-  :root {
-    --gold: #c9a84c;
-    --gold-light: #f0d080;
-    --red: #c0392b;
-    --dark: #1a0a00;
-    --paper: #f5ead5;
-    --ink: #2c1810;
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=M+PLUS+Rounded+1c:wght@700;800&display=swap');
+  :root{
+    --pink:#ff6eb4;--orange:#ff9a3c;--yellow:#ffd740;
+    --sky:#4fc3f7;--purple:#b39ddb;--green:#69f0ae;
+    --text:#4a3728;--text-light:#a08878;
   }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    background: var(--dark);
-    font-family: 'Noto Serif JP', serif;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    position: relative;
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{
+    background:linear-gradient(160deg,#fff9f0 0%,#ffeaf5 55%,#eaf6ff 100%);
+    font-family:'M PLUS Rounded 1c',sans-serif;
+    min-height:100vh;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+    overflow:hidden;position:relative;
   }
-
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
+  body::before{content:'';position:fixed;inset:0;pointer-events:none;
     background:
-      radial-gradient(ellipse at 20% 50%, rgba(180,100,0,0.15) 0%, transparent 60%),
-      radial-gradient(ellipse at 80% 50%, rgba(180,50,0,0.12) 0%, transparent 60%),
-      repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 40px,
-        rgba(201,168,76,0.03) 40px,
-        rgba(201,168,76,0.03) 41px
-      ),
-      repeating-linear-gradient(
-        90deg,
-        transparent,
-        transparent 40px,
-        rgba(201,168,76,0.03) 40px,
-        rgba(201,168,76,0.03) 41px
-      );
-    pointer-events: none;
+      radial-gradient(circle at 10% 20%,rgba(255,110,180,.13) 0%,transparent 40%),
+      radial-gradient(circle at 90% 15%,rgba(255,215,64,.16) 0%,transparent 35%),
+      radial-gradient(circle at 80% 85%,rgba(79,195,247,.13) 0%,transparent 40%),
+      radial-gradient(circle at 15% 80%,rgba(179,157,219,.13) 0%,transparent 35%);
   }
 
-  .container {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 32px;
-    padding: 24px;
-    width: 100%;
-    max-width: 480px;
+  /* 浮かぶ星 */
+  .star-bg{position:fixed;inset:0;pointer-events:none;z-index:0;}
+  .star{position:absolute;animation:floatStar linear infinite;opacity:.4;}
+  @keyframes floatStar{
+    0%{transform:translateY(100vh) rotate(0deg);opacity:0}
+    10%{opacity:.4}90%{opacity:.4}
+    100%{transform:translateY(-10vh) rotate(360deg);opacity:0}
   }
 
-  .title-wrap {
-    text-align: center;
+  .container{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:18px;padding:20px;width:100%;max-width:420px;}
+
+  /* タイトル */
+  .title-jp{font-family:'Nunito',sans-serif;font-weight:900;font-size:clamp(1.8rem,7vw,2.6rem);
+    background:linear-gradient(135deg,var(--pink),var(--orange),var(--yellow));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    filter:drop-shadow(0 3px 6px rgba(255,110,180,.25));letter-spacing:.08em;text-align:center;}
+
+  /* ======= ガチャマシン ======= */
+  .gacha-scene{position:relative;width:320px;height:360px;user-select:none;}
+
+  /* マシン本体 SVG */
+  #gachaMachine{width:100%;height:100%;position:absolute;top:0;left:0;}
+
+  /* ハムスター */
+  #hamster{
+    position:absolute;
+    font-size:2.6rem;
+    bottom:62px;left:50%;
+    transform:translateX(-50%);
+    transition:transform .15s;
+    filter:drop-shadow(0 3px 6px rgba(0,0,0,.15));
+    animation:hamIdle .9s ease-in-out infinite alternate;
+    cursor:pointer;
+  }
+  @keyframes hamIdle{0%{transform:translateX(-50%) scaleY(1)}100%{transform:translateX(-50%) scaleY(.93)}}
+  #hamster.turning{animation:hamTurn .18s steps(2) infinite;}
+  @keyframes hamTurn{
+    0%{transform:translateX(-50%) scaleX(1) scaleY(1) rotate(-8deg)}
+    50%{transform:translateX(-50%) scaleX(.88) scaleY(1.12) rotate(8deg)}
+    100%{transform:translateX(-50%) scaleX(1) scaleY(1) rotate(-8deg)}
   }
 
-  .title-jp {
-    font-family: 'Zen Antique', serif;
-    font-size: clamp(2.2rem, 8vw, 3.2rem);
-    color: var(--gold-light);
-    text-shadow: 0 0 30px rgba(201,168,76,0.5), 0 2px 4px rgba(0,0,0,0.8);
-    letter-spacing: 0.2em;
-    line-height: 1;
+  /* ハンドル（回転） */
+  #handleGroup{transform-origin:258px 178px;transition:transform .05s;}
+
+  /* カプセル落下エリア */
+  #capsuleEl{
+    position:absolute;
+    font-size:3.2rem;
+    top:30px;left:50%;
+    transform:translateX(-50%) scale(0);
+    opacity:0;
+    transition:none;
+    filter:drop-shadow(0 4px 12px rgba(255,110,180,.4));
+  }
+  #capsuleEl.drop{
+    animation:capsuleDrop .7s cubic-bezier(.34,1.56,.64,1) forwards;
+  }
+  @keyframes capsuleDrop{
+    0%{transform:translateX(-50%) scale(0) translateY(-40px);opacity:0}
+    60%{transform:translateX(-50%) scale(1.15) translateY(0);opacity:1}
+    80%{transform:translateX(-50%) scale(.95) translateY(0);opacity:1}
+    100%{transform:translateX(-50%) scale(1) translateY(0);opacity:1}
   }
 
-  .title-deco {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    justify-content: center;
-    margin-top: 8px;
+  /* ハムスターのセリフ */
+  .speech{
+    position:absolute;bottom:115px;left:50%;
+    transform:translateX(-50%);
+    background:white;border-radius:20px;padding:6px 16px;
+    font-size:.75rem;font-weight:700;color:var(--text);
+    box-shadow:0 3px 12px rgba(255,110,180,.25);
+    white-space:nowrap;opacity:1;transition:opacity .3s;
+    border:2px solid #ffd0e8;
   }
+  .speech::after{content:'▼';position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);color:#ffd0e8;font-size:.7rem;}
 
-  .deco-line {
-    height: 1px;
-    width: 60px;
-    background: linear-gradient(to right, transparent, var(--gold));
+  /* ボタン */
+  .draw-btn{
+    background:linear-gradient(135deg,var(--pink),var(--orange));
+    border:none;color:white;font-family:'Nunito',sans-serif;font-weight:900;font-size:1.4rem;
+    letter-spacing:.15em;padding:15px 52px;cursor:pointer;border-radius:99px;
+    position:relative;overflow:hidden;transition:all .25s;
+    box-shadow:0 6px 24px rgba(255,110,180,.45),inset 0 2px 0 rgba(255,255,255,.25);
   }
-  .deco-line.right { background: linear-gradient(to left, transparent, var(--gold)); }
+  .draw-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 40%,rgba(255,255,255,.2) 50%,transparent 60%);transform:translateX(-100%);transition:transform .5s;}
+  .draw-btn:hover::before{transform:translateX(100%);}
+  .draw-btn:hover{transform:translateY(-3px) scale(1.03);box-shadow:0 10px 32px rgba(255,110,180,.55);}
+  .draw-btn:active{transform:scale(.96);}
+  .draw-btn:disabled{background:linear-gradient(135deg,#ddd,#ccc);box-shadow:none;cursor:not-allowed;transform:none;}
 
-  .deco-diamond {
-    width: 8px; height: 8px;
-    background: var(--gold);
-    transform: rotate(45deg);
-  }
+  /* 残り */
+  .remaining{color:var(--text-light);font-size:.82rem;font-weight:700;background:white;padding:6px 20px;border-radius:99px;box-shadow:0 2px 8px rgba(0,0,0,.07);}
 
-  /* 賞品カウンター */
-  .prizes-info {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
+  /* 景品バッジ */
+  .prizes-info{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
+  .prize-badge{background:white;border-radius:14px;padding:8px 12px;text-align:center;transition:all .3s;box-shadow:0 3px 10px rgba(0,0,0,.08);position:relative;}
+  .prize-badge::before{content:'';position:absolute;inset:-2px;border-radius:16px;background:linear-gradient(135deg,var(--pink),var(--orange),var(--yellow));z-index:-1;}
+  .prize-badge.empty{opacity:.3;}
+  .prize-badge.empty::before{background:#ddd;}
+  .prize-badge .icon{font-size:1.3rem;}
+  .prize-badge .name{font-size:.58rem;color:var(--text-light);margin-top:2px;font-weight:700;}
+  .prize-badge .count{font-size:.82rem;color:var(--pink);font-weight:800;}
 
-  .prize-badge {
-    background: rgba(201,168,76,0.1);
-    border: 1px solid rgba(201,168,76,0.3);
-    border-radius: 8px;
-    padding: 8px 14px;
-    text-align: center;
-    transition: all 0.3s;
-  }
-
-  .prize-badge.empty {
-    opacity: 0.3;
-    border-color: rgba(201,168,76,0.1);
-  }
-
-  .prize-badge .icon { font-size: 1.4rem; }
-  .prize-badge .name {
-    font-size: 0.65rem;
-    color: var(--gold-light);
-    letter-spacing: 0.1em;
-    margin-top: 2px;
-  }
-  .prize-badge .count {
-    font-size: 0.9rem;
-    color: var(--gold);
-    font-weight: 700;
-    margin-top: 2px;
-  }
-
-  /* くじ箱 */
-  .box-wrap {
-    position: relative;
-    cursor: pointer;
-  }
-
-  .lottery-box {
-    width: 160px;
-    height: 160px;
-    position: relative;
-    transition: transform 0.1s;
-  }
-
-  .box-wrap:active .lottery-box { transform: scale(0.95); }
-
-  .box-svg {
-    width: 100%;
-    height: 100%;
-    filter: drop-shadow(0 0 20px rgba(201,168,76,0.4));
-  }
-
-  .shake {
-    animation: shake 3.0s ease-in-out;
-  }
-
-  @keyframes shake {
-    0%   { transform: rotate(0deg) scale(1); }
-    5%   { transform: rotate(-10deg) scale(1.07); }
-    15%  { transform: rotate(10deg) scale(1.07); }
-    25%  { transform: rotate(-9deg) scale(1.06) translateX(-4px); }
-    35%  { transform: rotate(9deg) scale(1.06) translateX(4px); }
-    45%  { transform: rotate(-7deg) scale(1.05) translateX(-3px); }
-    55%  { transform: rotate(7deg) scale(1.05) translateX(3px); }
-    65%  { transform: rotate(-5deg) scale(1.03); }
-    75%  { transform: rotate(5deg) scale(1.03); }
-    85%  { transform: rotate(-3deg) scale(1.01); }
-    93%  { transform: rotate(2deg); }
-    100% { transform: rotate(0deg) scale(1); }
-  }
-
-  .draw-btn {
-    background: linear-gradient(135deg, #8b1a1a 0%, #c0392b 50%, #8b1a1a 100%);
-    border: 2px solid var(--gold);
-    color: var(--gold-light);
-    font-family: 'Zen Antique', serif;
-    font-size: 1.3rem;
-    letter-spacing: 0.3em;
-    padding: 14px 48px;
-    cursor: pointer;
-    border-radius: 4px;
-    position: relative;
-    overflow: hidden;
-    transition: all 0.3s;
-    box-shadow: 0 4px 20px rgba(192,57,43,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
-  }
-
-  .draw-btn::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%);
-    transform: translateX(-100%);
-    transition: transform 0.6s;
-  }
-
-  .draw-btn:hover::before { transform: translateX(100%); }
-  .draw-btn:hover {
-    box-shadow: 0 6px 30px rgba(192,57,43,0.7), 0 0 15px rgba(201,168,76,0.3), inset 0 1px 0 rgba(255,255,255,0.15);
-    transform: translateY(-2px);
-  }
-
-  .draw-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    transform: none;
-  }
-
-  /* 残り枚数 */
-  .remaining {
-    color: rgba(201,168,76,0.6);
-    font-size: 0.8rem;
-    letter-spacing: 0.15em;
-    text-align: center;
-  }
-
-  /* 結果モーダル */
-  .modal-bg {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.85);
-    z-index: 100;
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(4px);
-  }
-
-  .modal-bg.show { display: flex; }
-
-  .modal {
-    position: relative;
-    background: var(--paper);
-    border: 3px solid var(--gold);
-    border-radius: 8px;
-    padding: 40px 48px;
-    text-align: center;
-    max-width: 340px;
-    width: 90%;
-    animation: popIn 1.0s cubic-bezier(0.34, 1.56, 0.64, 1);
-    box-shadow: 0 0 60px rgba(201,168,76,0.4), 0 20px 60px rgba(0,0,0,0.8);
-  }
-
-  @keyframes popIn {
-    from { transform: scale(0.3) rotate(-10deg); opacity: 0; }
-    to { transform: scale(1) rotate(0deg); opacity: 1; }
-  }
-
-  .modal::before, .modal::after {
-    content: '◆';
-    position: absolute;
-    color: var(--gold);
-    font-size: 1.2rem;
-  }
-  .modal::before { top: 12px; left: 12px; }
-  .modal::after { bottom: 12px; right: 12px; }
-
-  .result-rank {
-    font-family: 'Zen Antique', serif;
-    font-size: 1rem;
-    color: var(--red);
-    letter-spacing: 0.3em;
-    margin-bottom: 8px;
-  }
-
-  .result-icon {
-    font-size: 4rem;
-    margin: 12px 0;
-    animation: bounce 0.6s ease 0.3s both;
-  }
-
-  @keyframes bounce {
-    0% { transform: scale(0); }
-    60% { transform: scale(1.2); }
-    80% { transform: scale(0.95); }
-    100% { transform: scale(1); }
-  }
-
-  .result-name {
-    font-family: 'Zen Antique', serif;
-    font-size: 1.6rem;
-    color: var(--ink);
-    letter-spacing: 0.15em;
-    margin-bottom: 16px;
-    line-height: 1.4;
-  }
-
-  .result-deco {
-    color: var(--gold);
-    font-size: 0.9rem;
-    letter-spacing: 0.3em;
-    margin-bottom: 20px;
-  }
-
-  .modal-close {
-    background: var(--ink);
-    color: var(--gold-light);
-    border: 1px solid var(--gold);
-    font-family: 'Noto Serif JP', serif;
-    font-size: 0.85rem;
-    letter-spacing: 0.2em;
-    padding: 10px 32px;
-    cursor: pointer;
-    border-radius: 4px;
-    transition: all 0.2s;
-  }
-
-  .modal-close:hover {
-    background: var(--gold);
-    color: var(--ink);
-  }
-
-  /* 全終了 */
-  .all-done {
-    color: var(--gold-light);
-    font-family: 'Zen Antique', serif;
-    font-size: 1.1rem;
-    letter-spacing: 0.2em;
-    text-align: center;
-    padding: 16px;
-    border: 1px solid rgba(201,168,76,0.3);
-    border-radius: 8px;
-    background: rgba(201,168,76,0.05);
-  }
+  /* モーダル */
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(80,20,60,.55);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(6px);}
+  .modal-bg.show{display:flex;}
+  .modal{position:relative;background:white;border-radius:28px;padding:44px 48px 36px;text-align:center;max-width:360px;width:90%;animation:popIn 1s cubic-bezier(.34,1.56,.64,1);box-shadow:0 24px 80px rgba(255,110,180,.3),0 8px 32px rgba(0,0,0,.15);overflow:hidden;}
+  .modal::before{content:'';position:absolute;top:0;left:0;right:0;height:8px;background:linear-gradient(90deg,var(--pink),var(--orange),var(--yellow),var(--sky),var(--purple));}
+  @keyframes popIn{from{transform:scale(.3) rotate(-10deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}
+  .result-rank{font-family:'Nunito',sans-serif;font-weight:900;font-size:1rem;background:linear-gradient(135deg,var(--pink),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:.15em;margin-bottom:8px;}
+  .result-icon{font-size:5rem;margin:8px 0;animation:bounce .6s ease .3s both;}
+  @keyframes bounce{0%{transform:scale(0)}60%{transform:scale(1.25)}80%{transform:scale(.93)}100%{transform:scale(1)}}
+  .result-name{font-family:'Nunito',sans-serif;font-weight:900;font-size:1.7rem;color:var(--text);letter-spacing:.05em;margin-bottom:10px;line-height:1.3;}
+  .result-deco{font-size:.85rem;color:var(--text-light);letter-spacing:.2em;margin-bottom:24px;}
+  .modal-close{background:linear-gradient(135deg,var(--sky),var(--purple));color:white;border:none;font-family:'Nunito',sans-serif;font-weight:800;font-size:1rem;letter-spacing:.15em;padding:12px 40px;cursor:pointer;border-radius:99px;transition:all .2s;box-shadow:0 4px 16px rgba(79,195,247,.4);}
+  .modal-close:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(79,195,247,.5);}
 
   /* 紙吹雪 */
-  .confetti-piece {
-    position: fixed;
-    top: -10px;
-    pointer-events: none;
-    z-index: 200;
-    animation: fall linear forwards;
-  }
+  .confetti-piece{position:fixed;top:-10px;pointer-events:none;z-index:300;animation:fall linear forwards;}
+  @keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:0}}
 
-  @keyframes fall {
-    to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
-  }
-
-  .reset-btn {
-    background: transparent;
-    border: 1px solid rgba(201,168,76,0.3);
-    color: rgba(201,168,76,0.5);
-    font-family: 'Noto Serif JP', serif;
-    font-size: 0.75rem;
-    letter-spacing: 0.15em;
-    padding: 8px 24px;
-    cursor: pointer;
-    border-radius: 4px;
-    transition: all 0.3s;
-  }
-  .reset-btn:hover {
-    border-color: var(--gold);
-    color: var(--gold-light);
-  }
+  /* リセット */
+  .reset-btn{background:white;border:2px solid #f0d0e0;color:var(--text-light);font-family:'M PLUS Rounded 1c',sans-serif;font-weight:700;font-size:.8rem;letter-spacing:.1em;padding:8px 28px;cursor:pointer;border-radius:99px;transition:all .3s;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+  .reset-btn:hover{border-color:var(--pink);color:var(--pink);transform:translateY(-1px);}
 </style>
 </head>
 <body>
-
+<div class="star-bg" id="starBg"></div>
 <div class="container">
-  <div class="title-wrap">
-    <div class="title-jp">くじ引き</div>
-    <div class="title-deco">
-      <div class="deco-line"></div>
-      <div class="deco-diamond"></div>
-      <div class="deco-line right"></div>
-    </div>
+  <div class="title-jp">🐹 ハムスターガチャ 🎰</div>
+  <div class="prizes-info" id="prizesInfo" style="display:none"></div>
+
+  <!-- ガチャシーン -->
+  <div class="gacha-scene" id="gachaScene">
+    <!-- マシン SVG -->
+    <svg id="gachaMachine" viewBox="0 0 320 360" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="ballGrad" cx="35%" cy="30%">
+          <stop offset="0%" stop-color="#fffbe8"/>
+          <stop offset="60%" stop-color="#ffb8d8"/>
+          <stop offset="100%" stop-color="#e060a0"/>
+        </radialGradient>
+        <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#ffe0f0"/>
+          <stop offset="100%" stop-color="#ffd0a0"/>
+        </linearGradient>
+        <linearGradient id="baseGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#ff9a3c"/>
+          <stop offset="100%" stop-color="#e07020"/>
+        </linearGradient>
+        <filter id="shadow">
+          <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="rgba(255,110,180,.3)"/>
+        </filter>
+      </defs>
+
+      <!-- 台座 -->
+      <rect x="60" y="270" width="200" height="60" rx="16" fill="url(#baseGrad)" filter="url(#shadow)"/>
+      <rect x="75" y="278" width="170" height="20" rx="8" fill="rgba(255,255,255,.25)"/>
+      <!-- 台座のボタン類 -->
+      <circle cx="120" cy="300" r="10" fill="#ff6eb4"/>
+      <circle cx="120" cy="300" r="6" fill="#ff9ec8"/>
+      <rect x="145" y="292" width="50" height="16" rx="8" fill="rgba(255,255,255,.3)"/>
+      <text x="170" y="304" text-anchor="middle" font-size="9" font-weight="bold" fill="white" font-family="sans-serif">GACHA!</text>
+      <circle cx="220" cy="300" r="10" fill="#ffd740"/>
+      <circle cx="220" cy="300" r="6" fill="#ffe880"/>
+
+      <!-- マシン本体 -->
+      <rect x="55" y="100" width="210" height="175" rx="20" fill="url(#bodyGrad)" filter="url(#shadow)"/>
+      <rect x="65" y="108" width="190" height="60" rx="14" fill="rgba(255,255,255,.35)"/>
+
+      <!-- ガラスドーム（カプセル入れ） -->
+      <ellipse cx="160" cy="108" rx="90" ry="24" fill="rgba(255,255,255,.5)"/>
+      <path d="M 70 108 Q 70 20 160 20 Q 250 20 250 108" fill="rgba(200,230,255,.55)" stroke="rgba(150,200,255,.5)" stroke-width="3"/>
+      <path d="M 85 108 Q 85 38 160 38 Q 235 38 235 108" fill="rgba(255,255,255,.2)"/>
+      <!-- ドームのハイライト -->
+      <path d="M 90 90 Q 100 45 140 35" stroke="rgba(255,255,255,.7)" stroke-width="4" fill="none" stroke-linecap="round"/>
+
+      <!-- ドーム内カプセル装飾 -->
+      <circle cx="130" cy="72" r="14" fill="rgba(255,100,160,.35)" stroke="rgba(255,255,255,.5)" stroke-width="2"/>
+      <circle cx="158" cy="55" r="10" fill="rgba(255,200,60,.35)" stroke="rgba(255,255,255,.5)" stroke-width="2"/>
+      <circle cx="188" cy="70" r="12" fill="rgba(100,200,255,.35)" stroke="rgba(255,255,255,.5)" stroke-width="2"/>
+      <circle cx="148" cy="85" r="8" fill="rgba(160,120,220,.35)" stroke="rgba(255,255,255,.5)" stroke-width="2"/>
+      <circle cx="175" cy="88" r="9" fill="rgba(100,220,160,.35)" stroke="rgba(255,255,255,.5)" stroke-width="2"/>
+
+      <!-- 出口シュート -->
+      <path d="M 130 245 Q 125 265 110 270 L 150 270 Q 155 265 155 245 Z" fill="#e0708080" stroke="rgba(255,255,255,.4)" stroke-width="1.5"/>
+      <rect x="118" y="258" width="32" height="14" rx="4" fill="rgba(255,255,255,.3)"/>
+
+      <!-- ハンドルの軸 -->
+      <circle cx="258" cy="178" r="10" fill="#ff9a3c" stroke="white" stroke-width="2.5"/>
+
+      <!-- ハンドル（回転グループ） -->
+      <g id="handleGroup">
+        <rect x="252" y="178" width="44" height="12" rx="6" fill="#ff6eb4" stroke="white" stroke-width="2"/>
+        <circle cx="296" cy="184" r="12" fill="#ffd740" stroke="white" stroke-width="2.5"/>
+        <circle cx="296" cy="184" r="6" fill="#ffe88a"/>
+      </g>
+
+      <!-- マシン前面装飾 -->
+      <text x="160" y="160" text-anchor="middle" font-size="26" font-family="serif">🎰</text>
+      <text x="160" y="220" text-anchor="middle" font-size="11" font-weight="bold" fill="#c06090" font-family="sans-serif" letter-spacing="2">HAMSTER GACHA</text>
+
+      <!-- 機体の輝き -->
+      <rect x="65" y="108" width="50" height="155" rx="14" fill="rgba(255,255,255,.08)"/>
+    </svg>
+
+    <!-- ハムスター -->
+    <div id="hamster">🐹</div>
+
+    <!-- セリフ -->
+    <div class="speech" id="speech">まわすよ〜！🌀</div>
+
+    <!-- 飛び出すカプセル絵文字 -->
+    <div id="capsuleEl"></div>
   </div>
 
-  <div class="prizes-info" id="prizesInfo"></div>
-
-  <div class="box-wrap" id="boxWrap" onclick="drawLottery()">
-    <div class="lottery-box" id="lotteryBox">
-      <svg class="box-svg" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
-        <!-- 箱の本体 -->
-        <rect x="20" y="70" width="120" height="75" rx="4" fill="#3d1f00" stroke="#c9a84c" stroke-width="1.5"/>
-        <!-- 箱の蓋 -->
-        <rect x="12" y="55" width="136" height="22" rx="3" fill="#5c2e00" stroke="#c9a84c" stroke-width="1.5"/>
-        <!-- 蓋のリボン横 -->
-        <rect x="12" y="62" width="136" height="8" fill="rgba(192,57,43,0.6)"/>
-        <!-- リボン縦 -->
-        <rect x="74" y="55" width="12" height="90" fill="rgba(192,57,43,0.6)"/>
-        <!-- リボン中央 -->
-        <ellipse cx="80" cy="58" rx="14" ry="10" fill="none" stroke="#c0392b" stroke-width="2"/>
-        <ellipse cx="80" cy="58" rx="7" ry="5" fill="#c0392b"/>
-        <!-- くじ棒 -->
-        <g id="sticks">
-          <rect x="55" y="25" width="6" height="38" rx="3" fill="#f5ead5" opacity="0.9" transform="rotate(-8,58,44)"/>
-          <rect x="77" y="20" width="6" height="40" rx="3" fill="#f5ead5" opacity="0.9"/>
-          <rect x="99" y="25" width="6" height="38" rx="3" fill="#f5ead5" opacity="0.9" transform="rotate(8,102,44)"/>
-        </g>
-        <!-- 金装飾 -->
-        <text x="80" y="112" text-anchor="middle" fill="#c9a84c" font-size="11" font-family="serif" opacity="0.8">御</text>
-        <text x="80" y="127" text-anchor="middle" fill="#c9a84c" font-size="11" font-family="serif" opacity="0.8">抽</text>
-        <text x="80" y="142" text-anchor="middle" fill="#c9a84c" font-size="11" font-family="serif" opacity="0.8">選</text>
-      </svg>
-    </div>
-  </div>
-
-  <button class="draw-btn" id="drawBtn" onclick="drawLottery()">引く</button>
+  <button class="draw-btn" id="drawBtn" onclick="drawLottery()">ガチャる！</button>
   <div class="remaining" id="remaining"></div>
   <button class="reset-btn" onclick="resetLottery()">リセット</button>
 </div>
 
-<!-- 結果モーダル -->
+<!-- モーダル -->
 <div class="modal-bg" id="modalBg">
-  <div class="modal" id="modal">
+  <div class="modal">
     <div class="result-rank" id="resultRank"></div>
     <div class="result-icon" id="resultIcon"></div>
     <div class="result-name" id="resultName"></div>
@@ -420,256 +261,219 @@
 </div>
 
 <script>
-  const PRIZES = [
-    { name: 'HCC#5448',            icon: '💎', count: 1,  rank: '🔥 激レア' },
-    { name: 'HCC#6076',            icon: '💎', count: 1,  rank: '🔥 激レア' },
-    { name: 'アクリルキーホルダー', icon: '🏆', count: 4,  rank: '★★★★' },
-    { name: 'Tシャツ',             icon: '👕', count: 4,  rank: '★★★☆' },
-    { name: 'ミニタオル',          icon: '🎀', count: 9,  rank: '★★☆☆' },
-    { name: 'ステッカー',          icon: '🌟', count: 50, rank: '★☆☆☆' },
-  ];
+const PRIZES=[
+  {name:'HCC#5448',icon:'💎',count:1,rank:'🔥 激レア'},
+  {name:'HCC#6076',icon:'💎',count:1,rank:'🔥 激レア'},
+  {name:'アクリルキーホルダー',icon:'🏆',count:4,rank:'★★★★'},
+  {name:'Tシャツ',icon:'👕',count:4,rank:'★★★☆'},
+  {name:'ミニタオル',icon:'🎀',count:9,rank:'★★☆☆'},
+  {name:'ポーチ',icon:'👜',count:4,rank:'★★☆☆'},
+  {name:'ステッカー',icon:'🌟',count:50,rank:'★☆☆☆'},
+];
 
-  let pool = [];
-  let remaining = [];
+let pool=[],remaining=[],spinning=false;
 
-  function initPool() {
-    pool = [];
-    PRIZES.forEach((p, pi) => {
-      for (let i = 0; i < p.count; i++) pool.push(pi);
-    });
-    remaining = [...pool];
-    shuffle(remaining);
+function initPool(){
+  pool=[];
+  PRIZES.forEach((p,pi)=>{for(let i=0;i<p.count;i++)pool.push(pi);});
+  remaining=[...pool];shuffle(remaining);
+}
+function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}}
+
+// ハンドルアニメ
+let handleAngle=0,handleTarget=0,handleRAF=null;
+function spinHandle(totalDeg, duration, onDone){
+  const start=performance.now();
+  const startAngle=handleAngle;
+  function frame(now){
+    const t=Math.min((now-start)/duration,1);
+    const ease=1-Math.pow(1-t,2.5);
+    handleAngle=startAngle+totalDeg*ease;
+    document.getElementById('handleGroup').style.transform=`rotate(${handleAngle}deg)`;
+    if(t<1){handleRAF=requestAnimationFrame(frame);}
+    else{handleAngle=startAngle+totalDeg;onDone&&onDone();}
   }
+  handleRAF=requestAnimationFrame(frame);
+}
 
-  function shuffle(arr) {
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-  }
+const speeches=[
+  'よいしょ〜！💪','ぐるぐる〜！🌀','がんばるよ！✨',
+  'せーの！🐹','もうちょっと！😤','ふんっ！💨'
+];
 
-  function renderBadges() {
-    const rem = new Array(PRIZES.length).fill(0);
-    remaining.forEach(pi => rem[pi]++);
+function drawLottery(){
+  if(spinning||remaining.length===0)return;
+  resumeAC(); spinning=true;
+  const btn=document.getElementById('drawBtn');
+  btn.disabled=true;
 
-    const info = document.getElementById('prizesInfo');
-    info.innerHTML = PRIZES.map((p, i) => `
-      <div class="prize-badge ${rem[i] === 0 ? 'empty' : ''}">
-        <div class="icon">${p.icon}</div>
-        <div class="name">${p.name}</div>
-        <div class="count">${rem[i]} / ${p.count}</div>
-      </div>
-    `).join('');
-  }
+  // ハムスター走る
+  const ham=document.getElementById('hamster');
+  const sp=document.getElementById('speech');
+  ham.classList.add('turning');
+  sp.textContent=speeches[Math.floor(Math.random()*speeches.length)];
 
-  function updateRemaining() {
-    const el = document.getElementById('remaining');
-    const btn = document.getElementById('drawBtn');
-    if (remaining.length === 0) {
-      el.textContent = '全て引き終わりました';
-      btn.disabled = true;
-      document.getElementById('boxWrap').style.cursor = 'default';
-    } else {
-      el.textContent = `残り ${remaining.length} 枚`;
-      btn.disabled = false;
-    }
-  }
+  // カプセルリセット
+  const cap=document.getElementById('capsuleEl');
+  cap.className=''; cap.style.opacity='0'; cap.style.transform='translateX(-50%) scale(0)';
 
-  function drawLottery() {
-    if (remaining.length === 0) return;
+  // 結果決定
+  const prizeIdx=remaining.pop();
+  const prize=PRIZES[prizeIdx];
 
-    // shake box
-    const box = document.getElementById('lotteryBox');
-    box.classList.remove('shake');
-    void box.offsetWidth;
-    box.classList.add('shake');
-    playShake();
+  // 効果音（回転開始）
+  playShake();
 
-    setTimeout(() => {
-      const prizeIdx = remaining.pop();
-      const prize = PRIZES[prizeIdx];
+  // ハンドル 3回転
+  spinHandle(3*360, 3000, ()=>{
+    // ハムスター止まる
+    ham.classList.remove('turning');
+    sp.textContent='でた〜！🎉';
 
-      document.getElementById('resultRank').textContent = prize.rank;
-      document.getElementById('resultIcon').textContent = prize.icon;
-      document.getElementById('resultName').textContent = prize.name;
+    // カプセル絵文字をセット＆落下
+    cap.textContent=prize.icon;
+    cap.style.opacity='1';
+    void cap.offsetWidth;
+    cap.className='drop';
 
+    setTimeout(()=>{
+      // モーダル表示
+      document.getElementById('resultRank').textContent=prize.rank;
+      document.getElementById('resultIcon').textContent=prize.icon;
+      document.getElementById('resultName').textContent=prize.name;
       document.getElementById('modalBg').classList.add('show');
 
-      if (prizeIdx === 0 || prizeIdx === 1) {
-        launchConfetti(60); playResult('nft');
-      } else if (prizeIdx === 2) {
-        launchConfetti(30); playResult('high');
-      } else if (prizeIdx === 3) {
-        launchConfetti(15); playResult('high');
-      } else if (prizeIdx === 4) {
-        launchConfetti(6); playResult('mid');
-      } else {
-        launchConfetti(3); playResult('low');
-      }
+      if(prizeIdx===0||prizeIdx===1){launchConfetti(60);playResult('nft');}
+      else if(prizeIdx===2){launchConfetti(30);playResult('high');}
+      else if(prizeIdx===3){launchConfetti(15);playResult('high');}
+      else if(prizeIdx===4||prizeIdx===5){launchConfetti(8);playResult('mid');}
+      else{launchConfetti(3);playResult('low');}
 
-      renderBadges();
-      updateRemaining();
-    }, 3200);
+      renderBadges();updateRemaining();
+      spinning=false;
+    },700);
+  });
+}
+
+function renderBadges(){
+  const rem=new Array(PRIZES.length).fill(0);
+  remaining.forEach(pi=>rem[pi]++);
+  document.getElementById('prizesInfo').innerHTML=PRIZES.map((p,i)=>`
+    <div class="prize-badge ${rem[i]===0?'empty':''}">
+      <div class="icon">${p.icon}</div>
+      <div class="name">${p.name}</div>
+      <div class="count">${rem[i]} / ${p.count}</div>
+    </div>`).join('');
+}
+
+function updateRemaining(){
+  const el=document.getElementById('remaining'),btn=document.getElementById('drawBtn');
+  if(remaining.length===0){el.textContent='全て引き終わりました 🎊';btn.disabled=true;}
+  else{el.textContent='残り '+remaining.length+' 枚';btn.disabled=false;}
+}
+
+function closeModal(){
+  document.getElementById('modalBg').classList.remove('show');
+  document.getElementById('prizesInfo').style.display='none';
+  document.getElementById('speech').textContent='まわすよ〜！🌀';
+  const cap=document.getElementById('capsuleEl');
+  cap.className='';cap.style.opacity='0';cap.style.transform='translateX(-50%) scale(0)';
+}
+
+function resetLottery(){
+  if(spinning)return;
+  initPool();renderBadges();
+  document.getElementById('prizesInfo').style.display='none';
+  document.getElementById('drawBtn').disabled=false;
+  document.getElementById('remaining').textContent='残り '+remaining.length+' 枚';
+  document.getElementById('speech').textContent='まわすよ〜！🌀';
+  handleAngle=0;
+  document.getElementById('handleGroup').style.transform='rotate(0deg)';
+  const cap=document.getElementById('capsuleEl');
+  cap.className='';cap.style.opacity='0';cap.style.transform='translateX(-50%) scale(0)';
+}
+
+function launchConfetti(count){
+  const colors=['#ff6eb4','#ff9a3c','#ffd740','#4fc3f7','#b39ddb','#69f0ae','#ff5252','#fff'];
+  for(let i=0;i<count;i++){setTimeout(()=>{
+    const el=document.createElement('div');el.className='confetti-piece';
+    const s=Math.random()*10+6;
+    el.style.cssText=`left:${Math.random()*100}vw;width:${s}px;height:${s}px;background:${colors[Math.floor(Math.random()*colors.length)]};border-radius:${Math.random()>.5?'50%':'0'};animation-duration:${Math.random()*2+1.5}s;animation-delay:${Math.random()*.5}s;opacity:${Math.random()*.7+.3};`;
+    document.body.appendChild(el);setTimeout(()=>el.remove(),3000);
+  },i*40);}
+}
+
+// ===== 効果音 =====
+const AC=new(window.AudioContext||window.webkitAudioContext)();
+function resumeAC(){if(AC.state==='suspended')AC.resume();}
+
+function playShake(){
+  resumeAC();const now=AC.currentTime;
+  // ガチャ回転音（機械的なクリック音 + 低音）
+  const lfo=AC.createOscillator(),lg=AC.createGain();
+  lfo.type='square';lfo.frequency.setValueAtTime(6,now);lfo.frequency.linearRampToValueAtTime(22,now+2.5);
+  lg.gain.setValueAtTime(0,now);lg.gain.linearRampToValueAtTime(.12,now+.3);lg.gain.linearRampToValueAtTime(.18,now+2.2);lg.gain.linearRampToValueAtTime(0,now+3);
+  lfo.connect(lg);lg.connect(AC.destination);lfo.start(now);lfo.stop(now+3.1);
+  // カチカチ音
+  for(let i=0;i<24;i++){
+    const t=i/24,delay=t*t*2600+i*28;
+    setTimeout(()=>{
+      const dur=.04;
+      const buf=AC.createBuffer(1,Math.ceil(AC.sampleRate*dur),AC.sampleRate);
+      const data=buf.getChannelData(0);for(let j=0;j<data.length;j++)data[j]=(Math.random()*2-1)*(1-j/data.length);
+      const src=AC.createBufferSource();src.buffer=buf;
+      const f=AC.createBiquadFilter();f.type='peaking';f.frequency.value=2000+t*2000;f.gain.value=12;
+      const g=AC.createGain();g.gain.setValueAtTime(.2+t*.35,AC.currentTime);g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+dur);
+      src.connect(f);f.connect(g);g.connect(AC.destination);src.start();
+    },delay);
   }
+  // 最後にコロン（カプセル落下音）
+  setTimeout(()=>{
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.type='sine';o.frequency.setValueAtTime(800,AC.currentTime);o.frequency.exponentialRampToValueAtTime(300,AC.currentTime+.2);
+    g.gain.setValueAtTime(.4,AC.currentTime);g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+.3);
+    o.connect(g);g.connect(AC.destination);o.start(AC.currentTime);o.stop(AC.currentTime+.35);
+  },3000);
+}
 
-  function closeModal() {
-    document.getElementById('modalBg').classList.remove('show');
+function tone(type,freq,start,dur,vol,dest){
+  const o=AC.createOscillator(),g=AC.createGain();
+  o.type=type;o.frequency.value=freq;
+  g.gain.setValueAtTime(0,start);g.gain.linearRampToValueAtTime(vol,start+.02);g.gain.exponentialRampToValueAtTime(.001,start+dur);
+  o.connect(g);g.connect(dest);o.start(start);o.stop(start+dur+.05);
+}
+
+function playResult(rarity){
+  resumeAC();const now=AC.currentTime,dest=AC.destination;
+  if(rarity==='nft'){
+    [130,196,261].forEach(f=>tone('sawtooth',f,now,2.0,.1,dest));
+    [392,494,587,784,1047].forEach((f,i)=>tone('triangle',f,now+i*.13,1.2-i*.1,.32,dest));
+    [523,659,784,1047].forEach(f=>tone('triangle',f,now+.75,1.8,.25,dest));
+    [2093,2349,2637,3136,4186].forEach((f,i)=>tone('sine',f,now+1.0+i*.08,.6,.13,dest));
+    [1047,1319,1568].forEach((f,i)=>tone('sine',f,now+1.6+i*.12,1.0,.18,dest));
+  }else if(rarity==='high'){
+    [523,659,784,1047].forEach((f,i)=>tone('triangle',f,now+i*.12,.8,.28,dest));
+    [1047,1319].forEach((f,i)=>tone('sine',f,now+.5+i*.1,.6,.16,dest));
+  }else if(rarity==='mid'){
+    [523,659,784].forEach((f,i)=>tone('sine',f,now+i*.13,.6,.22,dest));
+  }else{
+    tone('sine',523,now,.3,.2,dest);tone('sine',659,now+.12,.25,.16,dest);
   }
+}
 
-  function resetLottery() {
-    if (!confirm('リセットしますか？')) return;
-    initPool();
-    renderBadges();
-    updateRemaining();
-    document.getElementById('drawBtn').disabled = false;
-    document.getElementById('boxWrap').style.cursor = 'pointer';
+// 浮かぶ星
+(function(){
+  const emojis=['⭐','🌟','✨','💫','🎀','🎊','🎈','🐹','🎰'];
+  const c=document.getElementById('starBg');
+  for(let i=0;i<14;i++){
+    const el=document.createElement('div');el.className='star';
+    el.textContent=emojis[Math.floor(Math.random()*emojis.length)];
+    el.style.cssText=`left:${Math.random()*100}vw;bottom:-2rem;animation-duration:${7+Math.random()*9}s;animation-delay:${-Math.random()*14}s;font-size:${.9+Math.random()*1.1}rem;`;
+    c.appendChild(el);
   }
+})();
 
-  function launchConfetti(count) {
-    const colors = ['#c9a84c','#f0d080','#c0392b','#e74c3c','#f5ead5','#ffffff'];
-    for (let i = 0; i < count; i++) {
-      setTimeout(() => {
-        const el = document.createElement('div');
-        el.className = 'confetti-piece';
-        const size = Math.random() * 10 + 6;
-        el.style.cssText = `
-          left: ${Math.random()*100}vw;
-          width: ${size}px;
-          height: ${size}px;
-          background: ${colors[Math.floor(Math.random()*colors.length)]};
-          border-radius: ${Math.random() > 0.5 ? '50%' : '0'};
-          animation-duration: ${Math.random()*2+1.5}s;
-          animation-delay: ${Math.random()*0.5}s;
-          opacity: ${Math.random()*0.7+0.3};
-        `;
-        document.body.appendChild(el);
-        setTimeout(() => el.remove(), 3000);
-      }, i * 40);
-    }
-  }
-
-  // ===== 効果音 (Web Audio API) =====
-  const AC = new (window.AudioContext || window.webkitAudioContext)();
-  function resumeAC() { if (AC.state === 'suspended') AC.resume(); }
-
-  function playShake() {
-    resumeAC();
-    const now = AC.currentTime;
-
-    // 低音うなり（ドラムロール感）
-    const lfo = AC.createOscillator();
-    const lfoGain = AC.createGain();
-    lfo.type = 'sawtooth';
-    lfo.frequency.setValueAtTime(3, now);
-    lfo.frequency.linearRampToValueAtTime(12, now + 2.5);
-    lfoGain.gain.setValueAtTime(0.0, now);
-    lfoGain.gain.linearRampToValueAtTime(0.18, now + 0.3);
-    lfoGain.gain.linearRampToValueAtTime(0.22, now + 2.0);
-    lfoGain.gain.linearRampToValueAtTime(0.0, now + 3.0);
-    lfo.connect(lfoGain); lfoGain.connect(AC.destination);
-    lfo.start(now); lfo.stop(now + 3.1);
-
-    // ノイズバースト（加速するガラガラ音）
-    const totalBursts = 22;
-    for (let i = 0; i < totalBursts; i++) {
-      // 加速: 最初はゆっくり、後半は速く
-      const t = (i / totalBursts);
-      const delay = t * t * 2400 + i * 30;
-      setTimeout(() => {
-        const dur = Math.max(0.03, 0.09 - t * 0.06);
-        const buf = AC.createBuffer(1, Math.ceil(AC.sampleRate * dur), AC.sampleRate);
-        const data = buf.getChannelData(0);
-        for (let j = 0; j < data.length; j++) data[j] = (Math.random() * 2 - 1);
-        const src = AC.createBufferSource();
-        src.buffer = buf;
-        const f = AC.createBiquadFilter();
-        f.type = 'bandpass';
-        f.frequency.value = 800 + Math.random() * 1800;
-        f.Q.value = 2.0;
-        const g = AC.createGain();
-        const vol = 0.15 + t * 0.35;
-        g.gain.setValueAtTime(vol, AC.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + dur);
-        src.connect(f); f.connect(g); g.connect(AC.destination);
-        src.start();
-      }, delay);
-    }
-
-    // 最後にドン！（低音インパクト）
-    setTimeout(() => {
-      const o = AC.createOscillator(); const g = AC.createGain();
-      o.type = 'sine';
-      o.frequency.setValueAtTime(120, AC.currentTime);
-      o.frequency.exponentialRampToValueAtTime(40, AC.currentTime + 0.3);
-      g.gain.setValueAtTime(0.6, AC.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + 0.5);
-      o.connect(g); g.connect(AC.destination);
-      o.start(AC.currentTime); o.stop(AC.currentTime + 0.5);
-    }, 2600);
-  }
-
-  function tone(type, freq, start, dur, vol, dest) {
-    const o = AC.createOscillator(); const g = AC.createGain();
-    o.type = type; o.frequency.value = freq;
-    g.gain.setValueAtTime(0, start);
-    g.gain.linearRampToValueAtTime(vol, start + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.001, start + dur);
-    o.connect(g); g.connect(dest);
-    o.start(start); o.stop(start + dur + 0.05);
-  }
-
-  function playResult(rarity) {
-    resumeAC();
-    const now = AC.currentTime;
-    const dest = AC.destination;
-
-    if (rarity === 'nft') {
-      // ── NFT：壮大なファンファーレ ──
-      // ベース和音
-      [130, 196, 261].forEach((f,i) => tone('sawtooth', f, now+0.0, 2.0, 0.12, dest));
-      // メロディ上昇
-      [392,494,587,784,1047].forEach((f,i) => {
-        tone('triangle', f, now + i*0.13, 1.2 - i*0.1, 0.35, dest);
-      });
-      // 1秒後：ジャーン和音
-      [523,659,784,1047].forEach((f,i) => {
-        tone('triangle', f, now+0.75, 1.8, 0.28, dest);
-      });
-      // キラキラ高音連打
-      [2093,2349,2637,3136,4186].forEach((f,i) => {
-        tone('sine', f, now + 1.0 + i*0.08, 0.6, 0.15, dest);
-      });
-      // 締めのベル
-      [1047,1319,1568].forEach((f,i) => {
-        tone('sine', f, now + 1.6 + i*0.12, 1.0, 0.2, dest);
-      });
-
-    } else if (rarity === 'high') {
-      // ── アクキー/Tシャツ：明るい3音チャイム ──
-      [523,659,784,1047].forEach((f,i) => {
-        tone('triangle', f, now + i*0.12, 0.8, 0.3, dest);
-      });
-      [1047,1319].forEach((f,i) => {
-        tone('sine', f, now + 0.5 + i*0.1, 0.6, 0.18, dest);
-      });
-
-    } else if (rarity === 'mid') {
-      // ── ミニタオル：2音ポーン ──
-      [523,659,784].forEach((f,i) => {
-        tone('sine', f, now + i*0.13, 0.6, 0.25, dest);
-      });
-
-    } else {
-      // ── ステッカー：軽快なポン ──
-      tone('sine', 523, now,      0.3, 0.22, dest);
-      tone('sine', 659, now+0.12, 0.25, 0.18, dest);
-    }
-  }
-
-  // 初期化
-  initPool();
-  renderBadges();
-  updateRemaining();
+initPool();renderBadges();updateRemaining();
 </script>
 </body>
 </html>
